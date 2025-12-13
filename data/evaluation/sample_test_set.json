@@ -1,0 +1,37 @@
+[
+  {
+    "question": "What is artificial intelligence?",
+    "expected_keywords": ["AI", "machine", "learning", "computer", "intelligence", "system"],
+    "expected_answer": "AI is the simulation of human intelligence by machines",
+    "context": "General AI question",
+    "category": "definition"
+  },
+  {
+    "question": "How does machine learning work?",
+    "expected_keywords": ["data", "algorithm", "pattern", "model", "training", "prediction"],
+    "expected_answer": "ML uses algorithms to learn patterns from data",
+    "context": "Technical ML question",
+    "category": "technical"
+  },
+  {
+    "question": "What are the benefits of using AI?",
+    "expected_keywords": ["efficiency", "automation", "accuracy", "productivity", "cost", "speed"],
+    "expected_answer": "AI improves efficiency, automates tasks, and increases accuracy",
+    "context": "Benefits question",
+    "category": "benefits"
+  },
+  {
+    "question": "What is the difference between AI and machine learning?",
+    "expected_keywords": ["subset", "AI", "ML", "broader", "specific", "algorithm"],
+    "expected_answer": "ML is a subset of AI that focuses on learning from data",
+    "context": "Comparison question",
+    "category": "comparison"
+  },
+  {
+    "question": "Can you help me with a simple task?",
+    "expected_keywords": ["help", "assist", "sure", "yes", "happy"],
+    "expected_answer": "Yes, I can help you",
+    "context": "General assistance",
+    "category": "interaction"
+  }
+]

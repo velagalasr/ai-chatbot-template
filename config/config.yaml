@@ -1,0 +1,180 @@
+# Main Configuration File for Chatbot Template
+# This file controls all major components of the chatbot system
+
+# LLM Configuration
+llm:
+  provider: "openai"  # Options: openai, anthropic, cohere, azure_openai, huggingface
+  model: "gpt-4"  # Model name
+  temperature: 0.7
+  max_tokens: 2000
+  top_p: 1.0
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+  api_key_env: "OPENAI_API_KEY"  # Environment variable name for API key
+  
+  # Azure OpenAI specific settings (if provider is azure_openai)
+  azure:
+    endpoint: ""
+    deployment_name: ""
+    api_version: "2024-02-15-preview"
+  
+  # HuggingFace specific settings (if provider is huggingface)
+  huggingface:
+    model_id: "meta-llama/Llama-2-7b-chat-hf"
+    device: "auto"
+
+# Agent Configuration
+agents:
+  # Default agent
+  default:
+    name: "General Assistant"
+    description: "A helpful AI assistant"
+    system_prompt: "You are a helpful AI assistant. Answer questions accurately and concisely."
+    llm_override: null  # Can override global LLM settings for this agent
+    use_rag: true
+    use_tools: false  # Enable/disable ReAct tools (RAG search, calculator, web search)
+    enable_web_search: false  # Requires TAVILY_API_KEY environment variable
+    max_history: 10
+  
+  # Custom agent example
+  technical_support:
+    name: "Technical Support Agent"
+    description: "Specialized in technical support and troubleshooting"
+    system_prompt: "You are a technical support specialist. Help users troubleshoot issues with clear, step-by-step instructions."
+    llm_override:
+      temperature: 0.3  # Lower temperature for more consistent technical responses
+    use_rag: true
+    use_tools: false  # Enable/disable ReAct tools (RAG search, calculator, web search)
+    enable_web_search: false  # Requires TAVILY_API_KEY environment variable
+    max_history: 15
+  
+  # Code assistant agent
+  code_assistant:
+    name: "Code Assistant"
+    description: "Helps with programming and code-related questions"
+    system_prompt: "You are an expert programming assistant. Provide clear code examples and explanations."
+    llm_override:
+      temperature: 0.5
+    use_rag: true
+    use_tools: false  # Enable/disable ReAct tools (RAG search, calculator, web search)
+    enable_web_search: false  # Requires TAVILY_API_KEY environment variable
+    max_history: 10
+
+# RAG (Retrieval-Augmented Generation) Configuration
+rag:
+  enabled: true
+  vector_db: "chromadb"  # Options: chromadb, faiss, pinecone
+  chunk_size: 1000
+  chunk_overlap: 200
+  top_k: 5  # Number of relevant chunks to retrieve
+  similarity_threshold: 0.7
+  
+  # Document sources
+  document_path: "./data/documents"  # Path to document files
+  supported_formats: [".txt", ".pdf", ".docx", ".md"]
+  
+  # Embedding configuration
+  embeddings:
+    provider: "openai"  # Options: openai, huggingface, sentence-transformers
+    model: "text-embedding-ada-002"
+    api_key_env: "OPENAI_API_KEY"
+    
+    # HuggingFace/Sentence-Transformers specific
+    huggingface:
+      model_id: "sentence-transformers/all-MiniLM-L6-v2"
+  
+  # ChromaDB specific settings
+  chromadb:
+    persist_directory: "./data/chromadb"
+    collection_name: "chatbot_docs"
+  
+  # FAISS specific settings
+  faiss:
+    index_path: "./data/faiss/index"
+    index_type: "FlatL2"  # Options: FlatL2, FlatIP, HNSW
+  
+  # Pinecone specific settings
+  pinecone:
+    api_key_env: "PINECONE_API_KEY"
+    environment: "gcp-starter"
+    index_name: "chatbot-index"
+    dimension: 1536  # Must match embedding dimension
+
+# Streamlit UI Configuration
+ui:
+  title: "AI Chatbot Assistant"
+  page_icon: "🤖"
+  layout: "wide"
+  sidebar:
+    show_agent_selector: true
+    show_rag_status: true
+    show_settings: true
+  theme:
+    primary_color: "#FF4B4B"
+    background_color: "#FFFFFF"
+    secondary_background_color: "#F0F2F6"
+    text_color: "#262730"
+  max_message_length: 4000
+  enable_file_upload: true
+  enable_chat_export: true
+
+# Email Tool Configuration
+email:
+  enabled: false  # Set to true to enable email sending capability
+  provider: "smtp"  # Options: smtp, sendgrid
+  from_email: "chatbot@example.com"  # Your sending email address
+  from_name: "AI Chatbot Assistant"  # Display name for sent emails
+  
+  # Recipient whitelist (leave empty and set allow_any_email: true to allow any email)
+  allowed_recipients:
+    - "user1@example.com"
+    - "user2@example.com"
+    - "admin@company.com"
+  
+  # Allow sending to any valid email address (overrides allowed_recipients)
+  allow_any_email: false  # Set to true to allow any recipient
+  
+  # SMTP settings (if provider is 'smtp')
+  smtp_host: "smtp.gmail.com"  # Can also use env var: SMTP_HOST
+  smtp_port: 587  # Can also use env var: SMTP_PORT
+  smtp_user: ""  # Leave empty to use from_email. Can use env var: SMTP_USER
+  # smtp_password is read from SMTP_PASSWORD environment variable
+  
+  # SendGrid settings (if provider is 'sendgrid')
+  # sendgrid_api_key is read from SENDGRID_API_KEY environment variable
+
+# Logging Configuration
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "./logs/chatbot.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "accuracy"
+    - "relevance"
+    - "coherence"
+    - "latency"
+  test_set_path: "./data/evaluation/test_set.json"
+  output_path: "./data/evaluation/results"
+  ragas_enabled: true  # Use RAGAS framework for RAG evaluation
+
+# Deployment Configuration
+deployment:
+  platform: "local"  # Options: local, huggingface, aws, azure
+  
+  huggingface:
+    space_name: "your-username/chatbot-space"
+    python_version: "3.10"
+    
+  aws:
+    region: "us-east-1"
+    service: "ecs"  # Options: ecs, lambda, ec2
+    
+  azure:
+    resource_group: "chatbot-rg"
+    location: "eastus"
+    service: "container-instances"  # Options: container-instances, app-service
