@@ -5,7 +5,7 @@ ChromaDB Vector Database Implementation
 from typing import List, Optional
 from pathlib import Path
 from langchain_community.vectorstores import Chroma
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from ...utils import get_config, get_logger
 

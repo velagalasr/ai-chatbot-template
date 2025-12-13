@@ -9,7 +9,7 @@ Your complete, production-ready chatbot template is now set up with:
 - ✅ **Tool System** - RAG search, web search (Tavily), email sending (SMTP/SendGrid), calculator
 - ✅ **Streamlit UI** - Beautiful, interactive chat interface
 - ✅ **Agent System** - Multiple configurable AI agents
-- ✅ **RAG Support** - ChromaDB, FAISS, and Pinecone integration
+- ✅ **RAG Support** - ChromaDB (primary), FAISS and Pinecone integration
 - ✅ **Multi-LLM** - OpenAI, Anthropic, Cohere, Azure, HuggingFace
 - ✅ **Configuration-Driven** - No hardcoding, all YAML-based
 - ✅ **Evaluation Framework** - Built-in testing and metrics
@@ -154,7 +154,7 @@ Edit `config/config.yaml`:
 
 ```yaml
 rag:
-  vector_db: "pinecone"  # or chromadb, faiss
+  vector_db: "chromadb"  # Primary option (also: faiss, pinecone)
 ```
 
 ## 🧪 Testing

@@ -4,14 +4,20 @@ Defines available tools that agents can use.
 """
 
 from typing import List, Optional, Dict, Any
-from langchain.tools import Tool
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.schema import Document
+from langchain_core.tools import Tool
+from langchain_core.documents import Document
 import os
 import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+# Optional import for Tavily search
+try:
+    from langchain_community.tools.tavily_search import TavilySearchResults
+    TAVILY_AVAILABLE = True
+except ImportError:
+    TAVILY_AVAILABLE = False
 
 from ..utils import get_logger
 
@@ -63,6 +69,10 @@ def create_web_search_tool() -> Optional[Tool]:
     Returns:
         Tool instance or None if API key not available
     """
+    if not TAVILY_AVAILABLE:
+        logger.info("Tavily is not installed. Web search tool is disabled. Install with: pip install tavily-python")
+        return None
+    
     if not os.getenv("TAVILY_API_KEY"):
         logger.info("TAVILY_API_KEY not set. Web search tool is disabled (this is optional).")
         return None
@@ -309,13 +319,14 @@ def _send_sendgrid_email(
         return f"Error sending via SendGrid: {str(e)}"
 
 
-def get_available_tools(rag_retriever=None, include_web_search: bool = False) -> List[Tool]:
+def get_available_tools(rag_retriever=None, include_web_search: bool = False, email_config: Optional[Dict[str, Any]] = None) -> List[Tool]:
     """
     Get list of available tools for agents.
     
     Args:
         rag_retriever: Optional RAG retriever for knowledge base search
         include_web_search: Whether to include web search tool (requires TAVILY_API_KEY)
+        email_config: Optional email configuration for email tool
         
     Returns:
         List of Tool instances
@@ -340,6 +351,74 @@ def get_available_tools(rag_retriever=None, include_web_search: bool = False) ->
     # Add calculator tool
     tools.append(create_calculator_tool())
     logger.info("Added calculator tool")
+    
+    # Add email tool if configured
+    if email_config:
+        email_tool = create_email_tool(email_config)
+        if email_tool:
+            tools.append(email_tool)
+            logger.info("Added email tool")
+    
+    logger.info(f"Total tools available: {len(tools)}")
+    return tools
+
+
+def get_individual_tools(
+    rag_retriever=None,
+    enable_calculator: bool = False,
+    enable_rag_search: bool = False,
+    enable_web_search: bool = False,
+    enable_email: bool = False,
+    email_config: Optional[Dict[str, Any]] = None
+) -> List[Tool]:
+    """
+    Get list of individually selected tools for agents.
+    
+    Args:
+        rag_retriever: Optional RAG retriever for knowledge base search
+        enable_calculator: Whether to include calculator tool
+        enable_rag_search: Whether to include RAG search tool
+        enable_web_search: Whether to include web search tool
+        enable_email: Whether to include email tool
+        email_config: Optional email configuration for email tool
+        
+    Returns:
+        List of Tool instances
+    """
+    tools = []
+    
+    # Add calculator tool if enabled
+    if enable_calculator:
+        tools.append(create_calculator_tool())
+        logger.info("Added calculator tool")
+    
+    # Add RAG search tool if enabled and available
+    if enable_rag_search:
+        rag_tool = create_rag_search_tool(rag_retriever)
+        if rag_tool:
+            tools.append(rag_tool)
+            logger.info("Added knowledge base search tool")
+        else:
+            logger.warning("RAG search requested but retriever not available")
+    
+    # Add web search tool if enabled and API key is available
+    if enable_web_search:
+        web_tool = create_web_search_tool()
+        if web_tool:
+            tools.append(web_tool)
+            logger.info("Added web search tool")
+        else:
+            logger.warning("Web search requested but TAVILY_API_KEY not found - skipping")
+    
+    # Add email tool if enabled and configured
+    if enable_email:
+        if email_config:
+            email_tool = create_email_tool(email_config)
+            if email_tool:
+                tools.append(email_tool)
+                logger.info("Added email tool")
+        else:
+            logger.warning("Email tool requested but configuration not provided")
     
     logger.info(f"Total tools available: {len(tools)}")
     return tools

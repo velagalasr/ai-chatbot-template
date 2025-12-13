@@ -9,10 +9,8 @@ from datetime import datetime
 import operator
 
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolExecutor, ToolInvocation
-from langchain.schema import BaseMessage, HumanMessage, AIMessage, SystemMessage, FunctionMessage
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import PromptTemplate
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.prompts import ChatPromptTemplate
 
 from ..llm import get_llm
 from ..utils import get_logger
@@ -82,71 +80,18 @@ class BaseAgent:
         # Initialize conversation history
         self.conversation_history: List[Message] = []
         
-        # Create ReAct agent
-        self.agent_executor = self._create_react_agent()
+        # Bind tools to LLM if available
+        if self.tools:
+            try:
+                self.llm_with_tools = self.llm.bind_tools(self.tools)
+                logger.info(f"Bound {len(self.tools)} tools to LLM for {name}")
+            except Exception as e:
+                logger.warning(f"Could not bind tools to LLM: {e}. Tools will not be available.")
+                self.llm_with_tools = self.llm
+        else:
+            self.llm_with_tools = self.llm
         
-        logger.info(f"Initialized LangGraph ReAct agent: {name} with {len(self.tools)} tools")
-    
-    def _create_react_agent(self) -> Optional[AgentExecutor]:
-        """
-        Create a ReAct agent using LangChain.
-        
-        Returns:
-            AgentExecutor instance or None if no tools
-        """
-        if not self.tools:
-            logger.info(f"No tools available for {self.name}, using direct LLM")
-            return None
-        
-        # Create ReAct prompt template
-        react_prompt = PromptTemplate.from_template(
-            """You are {agent_name}: {agent_description}
-
-{system_prompt}
-
-You have access to the following tools:
-
-{tools}
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
-
-Begin!
-
-Question: {input}
-Thought: {agent_scratchpad}"""
-        )
-        
-        # Create agent
-        agent = create_react_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=react_prompt.partial(
-                agent_name=self.name,
-                agent_description=self.description,
-                system_prompt=self.system_prompt
-            )
-        )
-        
-        # Create agent executor
-        agent_executor = AgentExecutor(
-            agent=agent,
-            tools=self.tools,
-            verbose=True,
-            max_iterations=5,
-            handle_parsing_errors=True,
-            return_intermediate_steps=True
-        )
-        
-        return agent_executor
+        logger.info(f"Initialized agent: {name} with {len(self.tools)} tools")
     
     def _build_messages_for_history(self) -> List[BaseMessage]:
         """
@@ -176,7 +121,7 @@ Thought: {agent_scratchpad}"""
         use_rag: Optional[bool] = None
     ) -> str:
         """
-        Process a user message and return a response using ReAct framework.
+        Process a user message and return a response.
         
         Args:
             message: User's message
@@ -189,54 +134,75 @@ Thought: {agent_scratchpad}"""
             # Build conversation context
             history_messages = self._build_messages_for_history()
             
-            # If agent has tools, use ReAct agent executor
-            if self.agent_executor and self.tools:
-                # Add history to prompt context
-                context_str = "\n".join([
-                    f"{msg.type}: {msg.content}" 
-                    for msg in history_messages[-6:]  # Last 3 exchanges
-                ])
+            # Add current user message
+            history_messages.append(HumanMessage(content=message))
+            
+            # Use LLM (with tools if available)
+            response = self.llm_with_tools.invoke(history_messages)
+            
+            # Handle tool calls if present
+            tool_calls_made = []
+            if hasattr(response, 'tool_calls') and response.tool_calls:
+                # LLM wants to use tools - add the AI response first
+                history_messages.append(response)
                 
-                # Run agent with tools
-                result = self.agent_executor.invoke({
-                    "input": message,
-                    "chat_history": context_str
-                })
+                # Execute each tool call
+                for tool_call in response.tool_calls:
+                    tool_name = tool_call.get('name', '')
+                    tool_args = tool_call.get('args', {})
+                    tool_call_id = tool_call.get('id', '')
+                    
+                    # Find and execute the tool
+                    tool_result = None
+                    for tool in self.tools:
+                        if tool.name == tool_name:
+                            try:
+                                # Execute tool with arguments
+                                if isinstance(tool_args, dict) and len(tool_args) == 1:
+                                    # Single argument, pass directly
+                                    arg_value = list(tool_args.values())[0]
+                                    tool_result = tool.func(arg_value)
+                                else:
+                                    # Multiple or no arguments
+                                    tool_result = tool.func(**tool_args) if tool_args else tool.func()
+                                
+                                tool_calls_made.append(f"{tool_name}: {tool_result}")
+                                logger.info(f"Executed tool {tool_name} with result: {tool_result[:100] if tool_result else 'None'}")
+                            except Exception as e:
+                                tool_result = f"Error executing {tool_name}: {str(e)}"
+                                logger.error(f"Tool execution error: {e}")
+                            break
+                    
+                    # If tool wasn't found, provide error message
+                    if tool_result is None:
+                        tool_result = f"Tool {tool_name} not found"
+                    
+                    # Add tool result with proper tool_call_id
+                    history_messages.append(
+                        ToolMessage(
+                            content=str(tool_result),
+                            tool_call_id=tool_call_id
+                        )
+                    )
                 
-                response_text = result.get("output", "I apologize, but I couldn't generate a response.")
-                
-                # Store intermediate steps if available
-                intermediate_steps = result.get("intermediate_steps", [])
-                metadata = {
-                    "used_tools": len(intermediate_steps) > 0,
-                    "tool_calls": len(intermediate_steps),
-                    "tools_used": [step[0].tool for step in intermediate_steps] if intermediate_steps else []
-                }
-                
-            else:
-                # No tools, use direct LLM with optional RAG
-                should_use_rag = use_rag if use_rag is not None else self.use_rag
-                
-                # Build messages with RAG context if needed
-                messages = history_messages.copy()
-                
-                if should_use_rag and self.rag_retriever:
-                    # Retrieve context
-                    docs = self.rag_retriever.get_relevant_documents(message)
-                    if docs:
-                        context = "\n\n".join([f"[Context {i+1}]\n{doc.page_content}" for i, doc in enumerate(docs)])
-                        messages.append(SystemMessage(content=f"Relevant information:\n{context}"))
-                
-                messages.append(HumanMessage(content=message))
-                
-                # Get response from LLM
-                response = self.llm.invoke(messages)
+                # Get final response after tool execution
+                if tool_calls_made:
+                    response = self.llm_with_tools.invoke(history_messages)
+            
+            # Extract response text
+            if hasattr(response, 'content'):
                 response_text = response.content
-                
-                metadata = {
-                    "used_tools": False,
-                    "used_rag": should_use_rag and self.rag_retriever is not None
-                }
+            else:
+                response_text = str(response)
+            
+            # If response is still empty, provide default
+            if not response_text or response_text.strip() == "":
+                response_text = "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+            
+            metadata = {
+                "used_tools": len(tool_calls_made) > 0,
+                "tools_executed": tool_calls_made
+            }
             
             # Store in conversation history
             self.conversation_history.append(Message(role="user", content=message))
@@ -259,6 +225,101 @@ Thought: {agent_scratchpad}"""
         """Clear conversation history."""
         self.conversation_history = []
         logger.info(f"Cleared conversation history for agent: {self.name}")
+    
+    def update_tools(self, use_tools: bool, enable_web_search: bool):
+        """
+        Update agent tools dynamically.
+        
+        Args:
+            use_tools: Whether to enable tools
+            enable_web_search: Whether to enable web search
+        """
+        from .tools import get_available_tools
+        
+        self.use_tools = use_tools
+        self.config['use_tools'] = use_tools
+        self.config['enable_web_search'] = enable_web_search
+        
+        # Reload tools
+        self.tools = []
+        if use_tools:
+            email_config = self.config.get('email_config')
+            self.tools = get_available_tools(
+                rag_retriever=self.rag_retriever if self.use_rag else None,
+                include_web_search=enable_web_search,
+                email_config=email_config
+            )
+        
+        # Rebind tools to LLM
+        if self.tools:
+            try:
+                self.llm_with_tools = self.llm.bind_tools(self.tools)
+                logger.info(f"Rebound {len(self.tools)} tools to LLM for {self.name}")
+            except Exception as e:
+                logger.warning(f"Could not bind tools to LLM: {e}")
+                self.llm_with_tools = self.llm
+        else:
+            self.llm_with_tools = self.llm
+        
+        logger.info(f"Updated tools for {self.name}: {len(self.tools)} tools active")
+    
+    def update_tools_individual(
+        self,
+        enable_calculator: bool,
+        enable_rag_search: bool,
+        enable_web_search: bool,
+        enable_email: bool
+    ):
+        """
+        Update individual tool configurations dynamically.
+        
+        Args:
+            enable_calculator: Whether to enable calculator tool
+            enable_rag_search: Whether to enable RAG search tool
+            enable_web_search: Whether to enable web search tool
+            enable_email: Whether to enable email tool
+        """
+        from .tools import get_individual_tools
+        
+        # Update config
+        self.config['enable_calculator'] = enable_calculator
+        self.config['enable_rag_search'] = enable_rag_search
+        self.config['enable_web_search'] = enable_web_search
+        self.config['enable_email'] = enable_email
+        
+        # Determine if any tools are enabled
+        any_tools_enabled = enable_calculator or enable_rag_search or enable_web_search or enable_email
+        self.use_tools = any_tools_enabled
+        self.config['use_tools'] = any_tools_enabled
+        
+        # Reload tools with individual selections
+        self.tools = []
+        if any_tools_enabled:
+            email_config = self.config.get('email_config')
+            self.tools = get_individual_tools(
+                rag_retriever=self.rag_retriever if self.use_rag else None,
+                enable_calculator=enable_calculator,
+                enable_rag_search=enable_rag_search,
+                enable_web_search=enable_web_search,
+                enable_email=enable_email,
+                email_config=email_config
+            )
+        
+        # Rebind tools to LLM
+        if self.tools:
+            try:
+                self.llm_with_tools = self.llm.bind_tools(self.tools)
+                logger.info(f"Rebound {len(self.tools)} tools to LLM for {self.name}")
+            except Exception as e:
+                logger.warning(f"Could not bind tools to LLM: {e}")
+                self.llm_with_tools = self.llm
+        else:
+            self.llm_with_tools = self.llm
+        
+        logger.info(
+            f"Updated individual tools for {self.name}: {len(self.tools)} tools active "
+            f"(calc={enable_calculator}, rag={enable_rag_search}, web={enable_web_search}, email={enable_email})"
+        )
     
     def get_history(self) -> List[Message]:
         """Get conversation history."""

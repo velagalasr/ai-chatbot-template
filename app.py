@@ -116,8 +116,16 @@ def main():
             timestamp=message.get('timestamp')
         )
     
-    # Chat input
-    user_input = render_chat_input(agent_manager, ui_config)
+    # Check if there's an example prompt to process
+    example_prompt = st.session_state.get('example_prompt', None)
+    if example_prompt:
+        # Clear the example prompt from session state
+        st.session_state.example_prompt = None
+        # Set it as the user input to be processed
+        user_input = example_prompt
+    else:
+        # Chat input
+        user_input = render_chat_input(agent_manager, ui_config)
     
     if user_input:
         # Add user message to history

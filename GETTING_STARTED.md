@@ -70,6 +70,22 @@ The default configuration in `config/config.yaml` is ready to use, but you can c
   - Email sending tool (requires SMTP or SendGrid - both FREE)
 - **UI Settings**: Modify title, colors, etc.
 
+### UI Features
+
+The chatbot interface includes:
+
+- **Public Mode**: Anyone can chat with agents
+- **Admin Mode**: Protected settings access
+  - Login with admin code (default: `admin123`)
+  - Configure tools individually (4 separate toggles)
+  - Try pre-built example prompts (2 per tool)
+  - Access advanced controls
+
+To set a custom admin password:
+```env
+ADMIN_CODE=your_secure_password
+```
+
 ## Step 4: Initialize Knowledge Base
 
 The template includes sample documents. To index them:

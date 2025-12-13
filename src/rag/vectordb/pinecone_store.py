@@ -4,7 +4,7 @@ Pinecone Vector Database Implementation
 
 from typing import List, Optional
 from langchain_community.vectorstores import Pinecone as LangchainPinecone
-from langchain.schema import Document
+from langchain_core.documents import Document
 import pinecone
 
 from ...utils import get_config, get_logger

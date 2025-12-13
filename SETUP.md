@@ -171,10 +171,25 @@ Open your browser to: `http://localhost:8501`
 
 ### 4. Test the Chatbot
 
+**Public Access (No login):**
 - Select an agent from the sidebar
-- Ask a question
-- Upload documents using the file uploader
+- Ask questions in chat
+- Clear your chat history
+
+**Admin Access:**
+- Click "🔐 Login as Admin to update settings"
+- Enter admin code (default: `admin123`)
+- Toggle individual tools (Calculator, RAG Search, Web Search, Email)
+- Click example buttons to try features
+- Upload documents (file uploader)
 - Export chat history
+- Click 🚺 to logout
+
+**Setting Custom Admin Code:**
+Add to `.env`:
+```env
+ADMIN_CODE=your_secure_password
+```
 
 ## Advanced Configuration
 

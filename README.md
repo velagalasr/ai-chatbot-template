@@ -10,7 +10,7 @@ A production-ready, configurable chatbot template with RAG capabilities, multipl
 - **Agent-Based Architecture**: Configure multiple specialized agents
 - **Multiple LLM Support**: OpenAI, Anthropic, Cohere, Azure OpenAI, HuggingFace
 - **RAG System**: Retrieval-Augmented Generation with document support
-- **Multiple Vector DBs**: ChromaDB, FAISS, or Pinecone
+- **Multiple Vector DBs**: ChromaDB (primary), FAISS (optional), or Pinecone (cloud)
 - **Configuration-Driven**: No hardcoding, all settings in YAML
 - **Multi-Cloud Deployment**: Deploy to HuggingFace, AWS, or Azure
 - **Evaluation Framework**: Built-in scripts for LLM performance testing
@@ -72,6 +72,26 @@ python scripts/init_vectordb.py
 streamlit run app.py
 ```
 
+### 8. Access the UI
+
+Open http://localhost:8501 in your browser.
+
+**Default Access:**
+- Chat with AI agents (no login required)
+- Select different agents
+- Clear chat history
+
+**Admin Access:**
+- Click **"🔐 Login as Admin to update settings"** in sidebar
+- Default admin code: `admin123`
+- Set custom code via `ADMIN_CODE` in `.env`
+
+**Admin Features:**
+- Toggle individual tools (Calculator, RAG Search, Web Search, Email)
+- Try pre-built example prompts for each tool
+- Export chat history
+- Advanced configuration controls
+
 ## 📁 Project Structure
 
 ```
@@ -110,10 +130,25 @@ The chatbot uses **LangGraph** for state-based orchestration and the **ReAct (Re
 
 ### Available Tools
 
-- **RAG Search**: Queries your indexed documents
-- **Calculator**: Performs mathematical operations
-- **Web Search**: Searches the internet (optional, requires Tavily API)
-- **Email Sender**: Sends emails via SMTP or SendGrid (optional, configurable whitelist)
+Each tool can be toggled independently in the admin UI:
+
+- **\ud83e\uddee Calculator**: Performs mathematical operations
+  - Example: "I bought 3 items at $45.99 each with 15% discount. What's the total?"
+  - No configuration needed
+- **\ud83d\udcda RAG Search**: Queries your indexed documents
+  - Example: "What is artificial intelligence according to the knowledge base?"
+  - Requires documents to be indexed
+- **\ud83c\udf10 Web Search**: Searches the internet (optional, requires Tavily API)
+  - Example: "What are the latest developments in artificial intelligence?"
+  - Requires `TAVILY_API_KEY` in `.env`
+- **\ud83d\udce7 Email Sender**: Sends emails via SMTP or SendGrid (optional, configurable whitelist)
+  - Example: "Send email to test@example.com about Meeting Reminder"
+  - Requires email configuration in `config.yaml`
+
+**UI Features:**
+- Individual toggles for each tool (admin mode)
+- 2 clickable example prompts per tool
+- Real-time tool status indicators
 
 ### Agent Modes
 
@@ -218,7 +253,7 @@ Edit `config/config.yaml`:
 
 ```yaml
 rag:
-  vector_db: "faiss"  # Change to chromadb, faiss, or pinecone
+  vector_db: "chromadb"  # Primary option (also: faiss, pinecone)
   # Update the corresponding settings below
 ```
 

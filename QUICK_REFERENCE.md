@@ -81,7 +81,47 @@ Access at: **http://localhost:8501**
 | **Calculator** | Math operations | Always available |
 | **Web Search** | Internet search | `TAVILY_API_KEY` |
 | **Email** | Send emails | SMTP or SendGrid |
+---
 
+## 🎮 UI Controls
+
+### Admin Authentication
+
+| Action | Description |
+|--------|-------------|
+| **Login** | Click "🔐 Login as Admin to update settings" |
+| **Default Code** | `admin123` |
+| **Custom Code** | Set `ADMIN_CODE` in `.env` |
+| **Logout** | Click 🚺 button in sidebar |
+
+### Tool Toggles (Admin Only)
+
+| Toggle | Description | Dependencies |
+|--------|-------------|-------------|
+| 🧮 **Calculator** | Math operations | None |
+| 📚 **RAG Search** | Knowledge base | Documents indexed |
+| 🌐 **Web Search** | Internet search | TAVILY_API_KEY |
+| 📧 **Email** | Send emails | Email config |
+
+### Example Buttons (Admin Only)
+
+Each tool shows 2 clickable examples when enabled:
+- **Calculator**: Discount calculation, complex math
+- **RAG Search**: Document search, info lookup
+- **Web Search**: Current events, market info
+- **Email**: Meeting reminder, status update
+
+**Click any example** to automatically send it as a chat prompt.
+
+### Status Indicators
+
+| Indicator | Meaning |
+|-----------|---------||
+| 🟢 Active: calculator, rag_search | Tools currently enabled |
+| 🔴 No tools active | All tools disabled |
+| Vector DB: chromadb ✅ | Database available |
+| RAG Search Tool: Active 🟢 | Agent can use search |
+| 👤 Admin Mode | Logged in as admin |
 ---
 
 ## 📧 Email Tool Setup

@@ -5,8 +5,25 @@ Creates LLM instances based on configuration.
 
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
-from langchain_community.chat_models import ChatAnthropic, ChatCohere
-from langchain_community.llms import HuggingFaceHub
+
+# Optional imports for other LLM providers
+try:
+    from langchain_community.chat_models import ChatAnthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+
+try:
+    from langchain_community.chat_models import ChatCohere
+    COHERE_AVAILABLE = True
+except ImportError:
+    COHERE_AVAILABLE = False
+
+try:
+    from langchain_community.llms import HuggingFaceHub
+    HUGGINGFACE_AVAILABLE = True
+except ImportError:
+    HUGGINGFACE_AVAILABLE = False
 
 from ..utils import get_config, get_logger
 
@@ -51,10 +68,16 @@ class LLMFactory:
         elif provider == 'azure_openai':
             return LLMFactory._create_azure_openai(llm_config, config)
         elif provider == 'anthropic':
+            if not ANTHROPIC_AVAILABLE:
+                raise ValueError("Anthropic is not installed. Install with: pip install anthropic")
             return LLMFactory._create_anthropic(llm_config, config)
         elif provider == 'cohere':
+            if not COHERE_AVAILABLE:
+                raise ValueError("Cohere is not installed. Install with: pip install cohere")
             return LLMFactory._create_cohere(llm_config, config)
         elif provider == 'huggingface':
+            if not HUGGINGFACE_AVAILABLE:
+                raise ValueError("HuggingFace is not installed. Install with: pip install huggingface-hub")
             return LLMFactory._create_huggingface(llm_config, config)
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")

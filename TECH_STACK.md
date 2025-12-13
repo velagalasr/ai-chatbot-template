@@ -543,7 +543,7 @@ This AI Chatbot Template uses a modern, production-ready tech stack combining st
 
 **Core**: Python 3.10+ • Streamlit • LangGraph • LangChain  
 **AI**: OpenAI • Anthropic • Cohere • Azure OpenAI • HuggingFace  
-**Vector DBs**: ChromaDB • FAISS • Pinecone  
+**Vector DBs**: ChromaDB (primary) • FAISS (optional) • Pinecone (cloud)  
 **Tools**: RAG • Calculator • Tavily Search • Email (SMTP/SendGrid)  
 **Deployment**: Docker • AWS ECS • Azure ACI • HuggingFace Spaces  
 **Storage**: Local FS • S3 • Azure Blob  

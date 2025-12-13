@@ -6,14 +6,14 @@ Handles loading and processing documents for RAG.
 import os
 from pathlib import Path
 from typing import List, Optional
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     TextLoader,
     PyPDFLoader,
     Docx2txtLoader,
     UnstructuredMarkdownLoader
 )
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from ..utils import get_config, get_logger
 

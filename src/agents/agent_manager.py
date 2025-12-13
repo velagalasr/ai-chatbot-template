@@ -163,6 +163,47 @@ class AgentManager:
             agent.clear_history()
         logger.info("Cleared all agent histories")
     
+    def update_agent_tools(self, use_tools: bool, enable_web_search: bool):
+        """
+        Update tool configuration for the current agent.
+        
+        Args:
+            use_tools: Whether to enable tools
+            enable_web_search: Whether to enable web search
+        """
+        current_agent = self.get_current_agent()
+        current_agent.update_tools(use_tools, enable_web_search)
+        logger.info(f"Updated tools for {self.current_agent_name}: use_tools={use_tools}, web_search={enable_web_search}")
+    
+    def update_agent_tools_individual(
+        self,
+        enable_calculator: bool,
+        enable_rag_search: bool,
+        enable_web_search: bool,
+        enable_email: bool
+    ):
+        """
+        Update individual tool configurations for the current agent.
+        
+        Args:
+            enable_calculator: Whether to enable calculator tool
+            enable_rag_search: Whether to enable RAG search tool
+            enable_web_search: Whether to enable web search tool
+            enable_email: Whether to enable email tool
+        """
+        current_agent = self.get_current_agent()
+        current_agent.update_tools_individual(
+            enable_calculator=enable_calculator,
+            enable_rag_search=enable_rag_search,
+            enable_web_search=enable_web_search,
+            enable_email=enable_email
+        )
+        logger.info(
+            f"Updated individual tools for {self.current_agent_name}: "
+            f"calculator={enable_calculator}, rag={enable_rag_search}, "
+            f"web={enable_web_search}, email={enable_email}"
+        )
+    
     def reload_agents(self):
         """Reload all agents from configuration."""
         self.agents.clear()

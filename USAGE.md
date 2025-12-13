@@ -51,6 +51,79 @@ This will check:
 5. **Clear Chat**: Use sidebar button
 6. **Export History**: Save conversation to file
 
+### Admin Authentication
+
+The UI includes an authentication system to protect configuration changes:
+
+**Accessing Admin Mode:**
+1. Click **"🔐 Login as Admin to update settings"** in the sidebar
+2. Enter admin code (default: `admin123`)
+3. Click "Login"
+
+**Admin Code Configuration:**
+```env
+# Add to .env file
+ADMIN_CODE=your_secure_password
+```
+
+**Features Available in Admin Mode:**
+
+#### Individual Tool Controls
+Each tool can be toggled independently:
+
+| Tool | Description | Requirements |
+|------|-------------|-------------|
+| 🧮 **Calculator** | Mathematical operations | None |
+| 📚 **RAG Search** | Knowledge base search | Documents indexed |
+| 🌐 **Web Search** | Internet search via Tavily | TAVILY_API_KEY |
+| 📧 **Email** | Send emails | Email config in config.yaml |
+
+#### Tool Examples
+Each enabled tool shows 2 clickable example prompts:
+
+**Calculator Examples:**
+- "📊 Calculate discount" → Calculates 3 items at $45.99 with 15% discount
+- "🔢 Complex math" → Evaluates (25 * 8 + 150) / 5 - 20
+
+**RAG Search Examples:**
+- "📖 Search docs" → Searches for AI definition in knowledge base
+- "🔍 Find info" → Searches for machine learning information
+
+**Web Search Examples:**
+- "🌍 Current events" → Latest AI developments
+- "📈 Market info" → Today's technology news
+
+**Email Examples:**
+- "✉️ Meeting reminder" → Sends meeting notification
+- "📝 Status update" → Sends project update email
+
+**Clicking an example button** automatically sends that prompt through the chat interface.
+
+#### Admin Controls
+- **♻️ Reset All**: Clears all sessions and history
+- 💾 **Export Chat**: Download conversation history
+- **🚺 Logout**: Exit admin mode
+
+### Public Features (No Login Required)
+
+Users without admin access can still:
+- Chat with the AI agents
+- Select different agents
+- Clear their own chat history
+- View basic RAG system status
+
+### RAG System Status
+
+The sidebar shows two separate indicators:
+
+**For Everyone:**
+- **Vector DB Status**: Whether ChromaDB is available (✅/⚠️)
+- **Documents Indexed**: Count of document chunks
+
+**For Admins Only:**
+- **RAG Search Tool Status**: Whether agents can use search tool (🟢/🔴)
+- This changes when you toggle the RAG Search tool on/off
+
 ---
 
 ## Configuration

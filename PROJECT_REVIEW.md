@@ -33,7 +33,7 @@ The AI Chatbot Template is a **production-ready, enterprise-grade** chatbot fram
 - ✅ No vendor lock-in
 
 ### 3. **RAG System** (100% Complete)
-- ✅ **3 Vector Databases**: ChromaDB (local), FAISS (fast), Pinecone (cloud)
+- ✅ **3 Vector Databases**: ChromaDB (primary/local), FAISS (optional/fast), Pinecone (cloud)
 - ✅ **4 Document Formats**: TXT, PDF, DOCX, Markdown
 - ✅ **2 Embedding Providers**: OpenAI, HuggingFace
 - ✅ Configurable chunk size and overlap

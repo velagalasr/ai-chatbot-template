@@ -4,12 +4,19 @@ Manages the complete RAG pipeline.
 """
 
 from typing import Optional, List, Any
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from .document_loader import DocumentLoader
 from .embeddings import EmbeddingsManager
-from .vectordb import ChromaDBStore, FAISSStore, PineconeStore
+from .vectordb import ChromaDBStore, FAISSStore
 from ..utils import get_config, get_logger
+
+# Optional import for PineconeStore
+try:
+    from .vectordb import PineconeStore
+    PINECONE_AVAILABLE = True
+except ImportError:
+    PINECONE_AVAILABLE = False
 
 logger = get_logger(__name__)
 
@@ -54,6 +61,8 @@ class RAGManager:
         elif vector_db == 'faiss':
             return FAISSStore(embeddings)
         elif vector_db == 'pinecone':
+            if not PINECONE_AVAILABLE:
+                raise ValueError("Pinecone is not installed. Install with: pip install pinecone-client")
             return PineconeStore(embeddings)
         else:
             raise ValueError(f"Unsupported vector database: {vector_db}")

@@ -50,43 +50,247 @@ def render_sidebar(agent_manager, rag_manager, config: Dict[str, Any]):
         
         st.divider()
         
-        # RAG status
-        if ui_config.get('show_rag_status', True) and rag_manager:
-            st.subheader("📚 RAG Status")
+        # Admin Authentication
+        if 'admin_logged_in' not in st.session_state:
+            st.session_state.admin_logged_in = False
+        
+        # Initialize tool states in session state if not exists (needed for both admin and non-admin)
+        if 'enable_calculator' not in st.session_state:
+            st.session_state.enable_calculator = True
+        if 'enable_rag_search' not in st.session_state:
+            st.session_state.enable_rag_search = True
+        if 'enable_web_search' not in st.session_state:
+            st.session_state.enable_web_search = False
+        if 'enable_email' not in st.session_state:
+            st.session_state.enable_email = False
+        
+        if not st.session_state.admin_logged_in:
+            # Show login link and form
+            if st.button("🔐 Login as Admin to update settings", use_container_width=True):
+                st.session_state.show_admin_login = True
+            
+            if st.session_state.get('show_admin_login', False):
+                with st.form("admin_login_form"):
+                    st.caption("Enter admin code to access settings")
+                    admin_code = st.text_input("Admin Code", type="password")
+                    login_button = st.form_submit_button("Login")
+                    
+                    if login_button:
+                        # Check admin code (can be set in environment or use default)
+                        import os
+                        correct_code = os.getenv('ADMIN_CODE', 'admin123')
+                        
+                        if admin_code == correct_code:
+                            st.session_state.admin_logged_in = True
+                            st.session_state.show_admin_login = False
+                            st.success("✅ Logged in as Admin")
+                            st.rerun()
+                        else:
+                            st.error("❌ Invalid admin code")
+            
+            st.divider()
+        else:
+            # Admin is logged in - show logout button
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.success("👤 Admin Mode")
+            with col2:
+                if st.button("🚪", help="Logout"):
+                    st.session_state.admin_logged_in = False
+                    st.rerun()
+            
+            st.divider()
+            
+            # Tools Configuration (only visible when logged in as admin)
+            st.subheader("🛠️ Agent Tools")
+            
+            current_agent = agent_manager.get_current_agent()
+            
+            # Individual tool toggles
+            enable_calculator = st.toggle(
+                "🧮 Calculator",
+                value=st.session_state.enable_calculator,
+                help="Enable calculator for mathematical operations"
+            )
+            
+            enable_rag_search = st.toggle(
+                "📚 RAG Search",
+                value=st.session_state.enable_rag_search,
+                help="Enable knowledge base search"
+            )
+            
+            enable_web_search = st.toggle(
+                "🌐 Web Search",
+                value=st.session_state.enable_web_search,
+                help="Enable web search. Requires TAVILY_API_KEY environment variable"
+            )
+            
+            enable_email = st.toggle(
+                "📧 Email",
+                value=st.session_state.enable_email,
+                help="Enable email sending. Requires email configuration in config.yaml"
+            )
+            
+            # Check if any tool settings changed
+            tools_changed = (
+                enable_calculator != st.session_state.enable_calculator or
+                enable_rag_search != st.session_state.enable_rag_search or
+                enable_web_search != st.session_state.enable_web_search or
+                enable_email != st.session_state.enable_email
+            )
+            
+            if tools_changed:
+                st.session_state.enable_calculator = enable_calculator
+                st.session_state.enable_rag_search = enable_rag_search
+                st.session_state.enable_web_search = enable_web_search
+                st.session_state.enable_email = enable_email
+                
+                # Update agent tools with individual settings
+                agent_manager.update_agent_tools_individual(
+                    enable_calculator=enable_calculator,
+                    enable_rag_search=enable_rag_search,
+                    enable_web_search=enable_web_search,
+                    enable_email=enable_email
+                )
+                st.rerun()
+            
+            # Show active tools
+            active_tools = []
+            if st.session_state.enable_calculator:
+                active_tools.append("calculator")
+            if st.session_state.enable_rag_search:
+                active_tools.append("rag_search")
+            if st.session_state.enable_web_search:
+                active_tools.append("web_search")
+            if st.session_state.enable_email:
+                active_tools.append("send_email")
+            
+            if active_tools:
+                st.caption(f"🟢 Active: {', '.join(active_tools)}")
+            else:
+                st.caption("🔴 No tools active")
+            
+            st.divider()
+            
+            # Tool Examples Section
+            st.subheader("💡 Try Examples")
+            
+            # Calculator examples
+            if st.session_state.enable_calculator:
+                st.caption("**🧮 Calculator Examples:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("📊 Calculate discount", key="calc_ex1", use_container_width=True):
+                        st.session_state.example_prompt = "I bought 3 items at $45.99 each with 15% discount. What's the total?"
+                        st.rerun()
+                with col2:
+                    if st.button("🔢 Complex math", key="calc_ex2", use_container_width=True):
+                        st.session_state.example_prompt = "What is (25 * 8 + 150) / 5 - 20?"
+                        st.rerun()
+            
+            # RAG Search examples
+            if st.session_state.enable_rag_search:
+                st.caption("**📚 RAG Search Examples:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("📖 Search docs", key="rag_ex1", use_container_width=True):
+                        st.session_state.example_prompt = "What is artificial intelligence according to the knowledge base?"
+                        st.rerun()
+                with col2:
+                    if st.button("🔍 Find info", key="rag_ex2", use_container_width=True):
+                        st.session_state.example_prompt = "Search for information about machine learning in the documents"
+                        st.rerun()
+            
+            # Web Search examples
+            if st.session_state.enable_web_search:
+                st.caption("**🌐 Web Search Examples:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("🌍 Current events", key="web_ex1", use_container_width=True):
+                        st.session_state.example_prompt = "What are the latest developments in artificial intelligence?"
+                        st.rerun()
+                with col2:
+                    if st.button("💹 Market info", key="web_ex2", use_container_width=True):
+                        st.session_state.example_prompt = "Search the web for today's technology news"
+                        st.rerun()
+            
+            # Email examples
+            if st.session_state.enable_email:
+                st.caption("**📧 Email Examples:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("✉️ Meeting reminder", key="email_ex1", use_container_width=True):
+                        st.session_state.example_prompt = "Send an email to test@example.com with subject 'Meeting Reminder' and message 'Don't forget our 2pm meeting tomorrow'"
+                        st.rerun()
+                with col2:
+                    if st.button("📝 Status update", key="email_ex2", use_container_width=True):
+                        st.session_state.example_prompt = "Send an email to team@example.com about Project Update with message: The AI chatbot is now ready for testing"
+                        st.rerun()
+        
+        # General controls and info (visible to everyone)
+            
+            st.divider()
+            
+            # RAG System Status (admin view with tool status)
+            if ui_config.get('show_rag_status', True) and rag_manager:
+                st.subheader("📚 RAG System")
+                rag_stats = rag_manager.get_stats()
+                
+                # Show vector database status
+                if rag_stats.get('enabled'):
+                    st.caption(f"Vector DB: {rag_stats.get('vector_db', 'N/A')} ✅")
+                    if 'document_count' in rag_stats:
+                        st.caption(f"Documents: {rag_stats['document_count']}")
+                else:
+                    st.caption("Vector DB: Not initialized ⚠️")
+                
+                # Show RAG tool status (whether agent can use it)
+                if st.session_state.enable_rag_search:
+                    st.caption("RAG Search Tool: Active 🟢")
+                else:
+                    st.caption("RAG Search Tool: Inactive 🔴")
+            
+            st.divider()
+            
+            # Additional admin settings
+            if ui_config.get('show_settings', True):
+                st.subheader("🔧 Admin Controls")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("♻️ Reset All", use_container_width=True):
+                        st.session_state.clear()
+                        agent_manager.clear_all_histories()
+                        st.rerun()
+                
+                with col2:
+                    # Export chat option
+                    if config.get('enable_chat_export', True):
+                        if st.button("💾 Export Chat", use_container_width=True):
+                            export_chat_history(st.session_state.get('messages', []))
+        
+        # General controls (visible to everyone)
+        st.divider()
+        st.subheader("🔧 Controls")
+        
+        if st.button("🗑️ Clear Chat", use_container_width=True):
+            st.session_state.messages = []
+            agent_manager.clear_history()
+            st.rerun()
+        
+        # Basic RAG info (visible to everyone)
+        if ui_config.get('show_rag_status', True) and rag_manager and not st.session_state.admin_logged_in:
+            st.divider()
+            st.subheader("📚 RAG System")
             rag_stats = rag_manager.get_stats()
             
             if rag_stats.get('enabled'):
-                st.success("RAG Enabled")
+                st.caption(f"Vector DB: {rag_stats.get('vector_db', 'N/A')} ✅")
                 if 'document_count' in rag_stats:
-                    st.metric("Documents Indexed", rag_stats['document_count'])
-                st.caption(f"Vector DB: {rag_stats.get('vector_db', 'N/A')}")
+                    st.caption(f"Documents: {rag_stats['document_count']}")
             else:
-                st.warning("RAG Disabled")
-        
-        st.divider()
-        
-        # Additional settings
-        if ui_config.get('show_settings', True):
-            st.subheader("🔧 Controls")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("🗑️ Clear Chat", use_container_width=True):
-                    st.session_state.messages = []
-                    agent_manager.clear_history()
-                    st.rerun()
-            
-            with col2:
-                if st.button("♻️ Reset All", use_container_width=True):
-                    st.session_state.clear()
-                    agent_manager.clear_all_histories()
-                    st.rerun()
-            
-            # Export chat option
-            if config.get('enable_chat_export', True):
-                if st.button("💾 Export Chat", use_container_width=True):
-                    export_chat_history(st.session_state.get('messages', []))
+                st.caption("Vector DB: Not initialized ⚠️")
 
 
 def render_chat_message(role: str, content: str, timestamp: datetime = None):
