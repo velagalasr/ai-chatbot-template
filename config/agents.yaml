@@ -39,9 +39,10 @@ agents:
       Provide well-researched, accurate answers with citations when possible.
       Break down complex topics into understandable explanations.
     llm_override:
-      temperature: 0.4
+      temperature: 0.5
       max_tokens: 3000
     use_rag: true
     use_tools: false  # Enable/disable ReAct tools (RAG search, calculator, web search)
     enable_web_search: false  # Requires TAVILY_API_KEY environment variable
     max_history: 10
+  
