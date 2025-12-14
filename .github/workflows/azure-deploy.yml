@@ -42,6 +42,13 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Add OpenAI API Key secret
+        run: |
+          az containerapp secret set \
+            --name ai-chatbot-app \
+            --resource-group chatbot-rg \
+            --secrets openai-api-key=${{ secrets.OPENAI_API_KEY }}
+
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
